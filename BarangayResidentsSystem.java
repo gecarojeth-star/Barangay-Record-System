@@ -289,7 +289,6 @@ class StyledTable extends JTable {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 
-                // Center align ID and Age columns
                 if (column == 0 || column == 2) {
                     setHorizontalAlignment(JLabel.CENTER);
                 } else {
@@ -349,23 +348,29 @@ class ArchiveRecord implements Serializable {
     public String getFinalStatus() { return finalStatus; }
 }
 
-// ==================== HOUSEHOLD MEMBER CLASS ====================
+// ==================== HOUSEHOLD MEMBER CLASS (UPDATED) ====================
 class HouseholdMember implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
+    
     private String lastName;
     private String firstName;
     private String qualifier;
     private int age;
     private String birthday;
     private String civilStatus;
+    private String sex;
+    private String relationship;
     
-    public HouseholdMember(String lastName, String firstName, String qualifier, int age, String birthday, String civilStatus) {
+    public HouseholdMember(String lastName, String firstName, String qualifier, int age, 
+                          String birthday, String civilStatus, String sex, String relationship) {
         this.lastName = lastName;
         this.firstName = firstName;
         this.qualifier = qualifier;
         this.age = age;
         this.birthday = birthday;
         this.civilStatus = civilStatus;
+        this.sex = sex;
+        this.relationship = relationship;
     }
     
     public String getLastName() { return lastName; }
@@ -374,6 +379,8 @@ class HouseholdMember implements Serializable {
     public int getAge() { return age; }
     public String getBirthday() { return birthday; }
     public String getCivilStatus() { return civilStatus; }
+    public String getSex() { return sex; }
+    public String getRelationship() { return relationship; }
     
     public String getFullName() {
         String name = firstName + " " + lastName;
@@ -381,11 +388,6 @@ class HouseholdMember implements Serializable {
             name += " " + qualifier;
         }
         return name;
-    }
-    
-    public String getSex() {
-        // Since household members don't have sex stored, return null
-        return null;
     }
 }
 
@@ -554,7 +556,6 @@ class Resident implements Serializable {
         return status == ResidentStatus.ACTIVE;
     }
     
-    // Get total population including household members
     public int getTotalPopulation() {
         return 1 + householdMembers.size();
     }
@@ -735,7 +736,7 @@ class PhoneDocument extends javax.swing.text.PlainDocument {
     }
 }
 
-// ==================== FILE HANDLER ====================
+// ==================== FILE HANDLER (UPDATED) ====================
 class SecureFileHandler {
     private static final String RESIDENTS_FILE = "residents_secure.dat";
     private static final String USERS_FILE = "users_secure.dat";
@@ -943,10 +944,11 @@ class SecureFileHandler {
             membersData.append(member.getQualifier() != null ? member.getQualifier() : "").append(",");
             membersData.append(member.getAge()).append(",");
             membersData.append(member.getBirthday()).append(",");
-            membersData.append(member.getCivilStatus()).append(";");
+            membersData.append(member.getCivilStatus()).append(",");
+            membersData.append(member.getSex()).append(",");
+            membersData.append(member.getRelationship()).append(";");
         }
         
-        // Store dates in ISO format for consistency
         String birthday = resident.getBirthday();
         if (birthday != null && !birthday.isEmpty()) {
             try {
@@ -1013,7 +1015,6 @@ class SecureFileHandler {
             int householdHeadID = Integer.parseInt(parts[18]);
             boolean isHouseholdHead = Boolean.parseBoolean(parts[19]);
             
-            // Convert birthday to display format
             if (birthday != null && !birthday.isEmpty()) {
                 try {
                     LocalDate date = LocalDate.parse(birthday);
@@ -1042,10 +1043,11 @@ class SecureFileHandler {
                     for (String memberData : members) {
                         if (!memberData.isEmpty()) {
                             String[] memberParts = memberData.split(",");
-                            if (memberParts.length >= 6) {
+                            if (memberParts.length >= 8) {
                                 HouseholdMember member = new HouseholdMember(
                                     memberParts[0], memberParts[1], memberParts[2],
-                                    Integer.parseInt(memberParts[3]), memberParts[4], memberParts[5]
+                                    Integer.parseInt(memberParts[3]), memberParts[4], 
+                                    memberParts[5], memberParts[6], memberParts[7]
                                 );
                                 resident.addHouseholdMember(member);
                             }
@@ -1080,7 +1082,6 @@ class SecureFileHandler {
             LocalDateTime archivedDate = LocalDateTime.parse(archivedDateStr);
             
             ArchiveRecord record = new ArchiveRecord(resident, finalStatus);
-            // Use reflection to set the archived date (since it's set in constructor)
             java.lang.reflect.Field field = ArchiveRecord.class.getDeclaredField("archivedDate");
             field.setAccessible(true);
             field.set(record, archivedDate);
@@ -1586,7 +1587,6 @@ public class BarangayResidentsSystem {
                     int residentID = Integer.parseInt(residentIdText);
                     Resident matchingResident = null;
                     
-                    // Check if resident exists
                     for (Resident r : residents) {
                         if (r.getResidentID() == residentID) {
                             matchingResident = r;
@@ -1643,7 +1643,6 @@ public class BarangayResidentsSystem {
         private boolean isValidPhoneNumber(String phone) {
             if (phone == null || phone.trim().isEmpty()) return false;
             phone = phone.trim().replaceAll("[\\s-]", "");
-            
             if (phone.matches("^09\\d{9}$")) return true;
             if (phone.matches("^\\+63\\d{10}$")) return true;
             return false;
@@ -1915,7 +1914,6 @@ public class BarangayResidentsSystem {
             
             sidebar.add(Box.createVerticalStrut(15));
             
-            // Main navigation buttons
             createMenuButton(sidebar, "Manage Residents", "manage_residents", BarangayColors.PRIMARY_BLUE);
             createMenuButton(sidebar, "Archive Residents", "archive", new Color(108, 117, 125));
             createMenuButton(sidebar, "Reports", "reports", BarangayColors.PRIMARY_BLUE);
@@ -1928,7 +1926,6 @@ public class BarangayResidentsSystem {
             
             sidebar.add(Box.createVerticalStrut(20));
             
-            // Add separator line
             JSeparator separator = new JSeparator();
             separator.setMaximumSize(new Dimension(180, 1));
             separator.setForeground(BarangayColors.BORDER_COLOR);
@@ -1937,7 +1934,6 @@ public class BarangayResidentsSystem {
             
             sidebar.add(Box.createVerticalStrut(15));
             
-            // Logout button at bottom
             JButton logoutButton = new JButton("Logout") {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -2072,13 +2068,11 @@ public class BarangayResidentsSystem {
         }
         
         public void refreshAllData() {
-            // Reload all data from files
             dashboardResidents.clear();
             dashboardResidents.addAll(SecureFileHandler.loadResidents());
             dashboardArchive.clear();
             dashboardArchive.addAll(SecureFileHandler.loadArchive());
             
-            // Refresh the current panel if it's the manage residents panel
             Component currentPanel = contentPanel.getComponent(0);
             if (currentPanel instanceof ManageResidentsModule) {
                 ((ManageResidentsModule) currentPanel).refreshData();
@@ -2107,7 +2101,6 @@ public class BarangayResidentsSystem {
             setBackground(Color.WHITE);
             setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
             
-            // Header
             JPanel headerPanel = new JPanel(new BorderLayout());
             headerPanel.setBackground(Color.WHITE);
             headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
@@ -2125,7 +2118,6 @@ public class BarangayResidentsSystem {
             titlePanel.add(titleLabel);
             titlePanel.add(subtitleLabel);
             
-            // Search panel
             JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             searchPanel.setBackground(Color.WHITE);
             
@@ -2143,7 +2135,6 @@ public class BarangayResidentsSystem {
             headerPanel.add(titlePanel, BorderLayout.WEST);
             headerPanel.add(searchPanel, BorderLayout.EAST);
             
-            // Table
             String[] columns = {"ID", "Full Name", "Age", "Sex", "Address", "Final Status", "Date Archived"};
             tableModel = new DefaultTableModel(columns, 0) {
                 @Override
@@ -2157,7 +2148,6 @@ public class BarangayResidentsSystem {
             archiveTable.setRowSorter(sorter);
             archiveTable.setRowHeight(28);
             
-            // Set column widths
             archiveTable.getColumnModel().getColumn(0).setPreferredWidth(80);
             archiveTable.getColumnModel().getColumn(1).setPreferredWidth(180);
             archiveTable.getColumnModel().getColumn(2).setPreferredWidth(50);
@@ -2166,7 +2156,6 @@ public class BarangayResidentsSystem {
             archiveTable.getColumnModel().getColumn(5).setPreferredWidth(100);
             archiveTable.getColumnModel().getColumn(6).setPreferredWidth(120);
             
-            // Double-click to view details
             archiveTable.addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent e) {
                     if (e.getClickCount() == 2) {
@@ -2178,7 +2167,6 @@ public class BarangayResidentsSystem {
             JScrollPane scrollPane = new JScrollPane(archiveTable);
             scrollPane.setBorder(new LineBorder(BarangayColors.BORDER_COLOR, 1));
             
-            // Button panel
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 15));
             buttonPanel.setBackground(Color.WHITE);
             
@@ -2238,7 +2226,7 @@ public class BarangayResidentsSystem {
             }
             
             List<RowFilter<Object, Object>> filters = new ArrayList<>();
-            filters.add(RowFilter.regexFilter("(?i)" + query, 0, 1, 4, 5)); // Search in ID, Name, Address, Status
+            filters.add(RowFilter.regexFilter("(?i)" + query, 0, 1, 4, 5));
             
             sorter.setRowFilter(RowFilter.andFilter(filters));
         }
@@ -2362,7 +2350,7 @@ public class BarangayResidentsSystem {
         }
     }
     
-    // ==================== MANAGE RESIDENTS MODULE ====================
+    // ==================== MANAGE RESIDENTS MODULE (UPDATED) ====================
     class ManageResidentsModule extends JPanel {
         private User panelUser;
         private List<Resident> panelResidents;
@@ -2370,14 +2358,12 @@ public class BarangayResidentsSystem {
         private List<ArchiveRecord> panelArchive;
         private MainDashboard dashboard;
         
-        // Left Sidebar Components
         private JPanel filterPanel;
         private StyledComboBox<String> statusFilter;
         private StyledComboBox<String> sexFilter;
         private StyledComboBox<String> ageGroupFilter;
         private JCheckBox householdHeadCheckBox;
         
-        // Center Panel Components
         private StyledTable residentTable;
         private DefaultTableModel tableModel;
         private TableRowSorter<DefaultTableModel> sorter;
@@ -2386,12 +2372,10 @@ public class BarangayResidentsSystem {
         private JPanel summaryCardsPanel;
         private JLabel[] summaryCardValues;
         
-        // Right Preview Panel
         private JPanel previewPanel;
         private JLabel previewNameLabel;
         private JPanel previewDetailsPanel;
         
-        // Data
         private List<Resident> filteredResidents;
         private Resident selectedResident;
         
@@ -2408,44 +2392,29 @@ public class BarangayResidentsSystem {
             setLayout(new BorderLayout());
             setBackground(BarangayColors.LIGHT_BACKGROUND);
             
-            // Create the three main sections
             JPanel leftSidebar = createLeftSidebar();
             JPanel centerPanel = createCenterPanel();
             JPanel rightPreview = createRightPreviewPanel();
             
-            // Add sections to main panel
             add(leftSidebar, BorderLayout.WEST);
             add(centerPanel, BorderLayout.CENTER);
             add(rightPreview, BorderLayout.EAST);
             
-            // Load initial data
             loadResidentsData();
             updateSummaryCards();
         }
         
         public void refreshData() {
-            // Refresh filtered residents list
             filteredResidents = new ArrayList<>(panelResidents);
-            
-            // Reload table data
             loadResidentsData();
-            
-            // Update summary cards
             updateSummaryCards();
-            
-            // Clear selection
             selectedResident = null;
             updatePreviewPanel();
-            
-            // Clear filters
             clearFilters();
-            
-            // Force repaint
             revalidate();
             repaint();
         }
         
-        // ==================== LEFT SIDEBAR ====================
         private JPanel createLeftSidebar() {
             JPanel sidebar = new JPanel();
             sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
@@ -2453,7 +2422,6 @@ public class BarangayResidentsSystem {
             sidebar.setBackground(BarangayColors.SIDEBAR_GRAY);
             sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BarangayColors.BORDER_COLOR));
             
-            // Title
             JLabel titleLabel = new JLabel("FILTERS");
             titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             titleLabel.setForeground(BarangayColors.PRIMARY_BLUE);
@@ -2467,7 +2435,6 @@ public class BarangayResidentsSystem {
             filterPanel.setBackground(BarangayColors.SIDEBAR_GRAY);
             filterPanel.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
             
-            // Status Filter
             JLabel statusLabel = new JLabel("Status:");
             statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
             statusLabel.setForeground(BarangayColors.TEXT_COLOR);
@@ -2477,7 +2444,6 @@ public class BarangayResidentsSystem {
             statusFilter.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
             statusFilter.addActionListener(e -> applyFilters());
             
-            // Sex Filter
             JLabel sexLabel = new JLabel("Sex:");
             sexLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
             sexLabel.setForeground(BarangayColors.TEXT_COLOR);
@@ -2487,7 +2453,6 @@ public class BarangayResidentsSystem {
             sexFilter.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
             sexFilter.addActionListener(e -> applyFilters());
             
-            // Age Group Filter
             JLabel ageLabel = new JLabel("Age Group:");
             ageLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
             ageLabel.setForeground(BarangayColors.TEXT_COLOR);
@@ -2497,7 +2462,6 @@ public class BarangayResidentsSystem {
             ageGroupFilter.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
             ageGroupFilter.addActionListener(e -> applyFilters());
             
-            // Household Head Checkbox
             householdHeadCheckBox = new JCheckBox("Household Heads Only");
             householdHeadCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             householdHeadCheckBox.setBackground(BarangayColors.SIDEBAR_GRAY);
@@ -2505,7 +2469,6 @@ public class BarangayResidentsSystem {
             householdHeadCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
             householdHeadCheckBox.addActionListener(e -> applyFilters());
             
-            // Clear Filters Button
             StyledButton clearFiltersBtn = new StyledButton("Clear Filters", 
                 BarangayColors.BUTTON_BLACK, Color.WHITE);
             clearFiltersBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
@@ -2513,7 +2476,6 @@ public class BarangayResidentsSystem {
             clearFiltersBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
             clearFiltersBtn.addActionListener(e -> clearFilters());
             
-            // Add filter components with reduced spacing
             filterPanel.add(statusLabel);
             filterPanel.add(Box.createVerticalStrut(3));
             filterPanel.add(statusFilter);
@@ -2532,7 +2494,6 @@ public class BarangayResidentsSystem {
             
             sidebar.add(filterPanel);
             
-            // Actions Section
             JLabel actionsLabel = new JLabel("ACTIONS");
             actionsLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             actionsLabel.setForeground(BarangayColors.ACCENT_ORANGE);
@@ -2546,12 +2507,10 @@ public class BarangayResidentsSystem {
             actionPanel.setBackground(BarangayColors.SIDEBAR_GRAY);
             actionPanel.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
             
-            // Action Buttons with consistent sizing
             StyledButton addButton = createActionButton("Add Resident", BarangayColors.PRIMARY_BLUE, e -> addResident());
             StyledButton editButton = createActionButton("Edit Resident", BarangayColors.PRIMARY_BLUE, e -> editResident());
             StyledButton deleteButton = createActionButton("Delete", new Color(220, 53, 69), e -> deleteResident());
             
-            // Archive Section
             JLabel archiveLabel = new JLabel("ARCHIVE");
             archiveLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
             archiveLabel.setForeground(new Color(108, 117, 125));
@@ -2594,24 +2553,20 @@ public class BarangayResidentsSystem {
             return button;
         }
         
-        // ==================== CENTER PANEL ====================
         private JPanel createCenterPanel() {
             JPanel centerPanel = new JPanel(new BorderLayout());
             centerPanel.setBackground(Color.WHITE);
             centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
             
-            // Top Section - Summary Cards (compact)
             summaryCardsPanel = new JPanel(new GridLayout(1, 4, 5, 0));
             summaryCardsPanel.setBackground(Color.WHITE);
             summaryCardsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
             
-            // Create summary cards with reduced padding - now showing only 4 cards
             summaryCardsPanel.add(createSummaryCard("Total Residents", "0", new Color(52, 152, 219), 0));
             summaryCardsPanel.add(createSummaryCard("Total Population", "0", new Color(46, 204, 113), 1));
             summaryCardsPanel.add(createSummaryCard("Senior Citizens", "0", new Color(155, 89, 182), 2));
             summaryCardsPanel.add(createSummaryCard("Deceased", "0", new Color(149, 165, 166), 3));
             
-            // Search Bar (compact)
             JPanel searchPanel = new JPanel(new BorderLayout(5, 0));
             searchPanel.setBackground(Color.WHITE);
             searchPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
@@ -2642,7 +2597,6 @@ public class BarangayResidentsSystem {
             searchPanel.add(searchLabel, BorderLayout.WEST);
             searchPanel.add(searchInputPanel, BorderLayout.CENTER);
             
-            // Table with compact settings
             String[] columns = {"ID", "Full Name", "Age", "Sex", "Civil Status", "Address", 
                                "Contact", "Household", "Status", "Registered"};
             tableModel = new DefaultTableModel(columns, 0) {
@@ -2657,7 +2611,6 @@ public class BarangayResidentsSystem {
             residentTable.setRowSorter(sorter);
             residentTable.setRowHeight(26);
             
-            // Set column widths
             residentTable.getColumnModel().getColumn(0).setPreferredWidth(60);
             residentTable.getColumnModel().getColumn(1).setPreferredWidth(150);
             residentTable.getColumnModel().getColumn(2).setPreferredWidth(40);
@@ -2669,7 +2622,6 @@ public class BarangayResidentsSystem {
             residentTable.getColumnModel().getColumn(8).setPreferredWidth(70);
             residentTable.getColumnModel().getColumn(9).setPreferredWidth(80);
             
-            // Selection listener
             residentTable.getSelectionModel().addListSelectionListener(e -> {
                 if (!e.getValueIsAdjusting()) {
                     int selectedRow = residentTable.getSelectedRow();
@@ -2683,7 +2635,6 @@ public class BarangayResidentsSystem {
                 }
             });
             
-            // Right-click context menu
             JPopupMenu contextMenu = new JPopupMenu();
             JMenuItem editItem = new JMenuItem("Edit");
             JMenuItem deleteItem = new JMenuItem("Delete");
@@ -2731,7 +2682,6 @@ public class BarangayResidentsSystem {
             scrollPane.setBorder(new LineBorder(BarangayColors.BORDER_COLOR, 1));
             scrollPane.getViewport().setBackground(Color.WHITE);
             
-            // Bottom Record Summary
             JPanel bottomPanel = new JPanel(new BorderLayout());
             bottomPanel.setBackground(Color.WHITE);
             bottomPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
@@ -2742,7 +2692,6 @@ public class BarangayResidentsSystem {
             
             bottomPanel.add(recordSummaryLabel, BorderLayout.WEST);
             
-            // Assemble center panel
             JPanel topContainer = new JPanel(new BorderLayout());
             topContainer.setBackground(Color.WHITE);
             topContainer.add(summaryCardsPanel, BorderLayout.NORTH);
@@ -2777,7 +2726,6 @@ public class BarangayResidentsSystem {
             return card;
         }
         
-        // ==================== RIGHT PREVIEW PANEL ====================
         private JPanel createRightPreviewPanel() {
             previewPanel = new JPanel(new BorderLayout());
             previewPanel.setPreferredSize(new Dimension(280, getHeight()));
@@ -2787,20 +2735,17 @@ public class BarangayResidentsSystem {
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
             ));
             
-            // Header
             JLabel titleLabel = new JLabel("DETAILS");
             titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             titleLabel.setForeground(BarangayColors.PRIMARY_BLUE);
             titleLabel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BarangayColors.BORDER_COLOR));
             titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
             
-            // Name header
             previewNameLabel = new JLabel("Select a resident");
             previewNameLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
             previewNameLabel.setForeground(BarangayColors.TEXT_COLOR);
             previewNameLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
             
-            // Details panel with reduced spacing
             previewDetailsPanel = new JPanel();
             previewDetailsPanel.setLayout(new BoxLayout(previewDetailsPanel, BoxLayout.Y_AXIS));
             previewDetailsPanel.setBackground(Color.WHITE);
@@ -2829,7 +2774,6 @@ public class BarangayResidentsSystem {
             } else {
                 previewNameLabel.setText(selectedResident.getFullName());
                 
-                // Personal Information - reduced spacing
                 addPreviewSection("PERSONAL");
                 addPreviewDetail("ID:", String.format("%06d", selectedResident.getResidentID()));
                 addPreviewDetail("Age:", String.valueOf(selectedResident.getAge()));
@@ -2837,20 +2781,17 @@ public class BarangayResidentsSystem {
                 addPreviewDetail("Sex:", selectedResident.getSex());
                 addPreviewDetail("Status:", selectedResident.getMaritalStatus());
                 
-                // Contact Information
                 addPreviewSection("CONTACT");
                 addPreviewDetail("Address:", selectedResident.getAddress());
                 addPreviewDetail("Contact:", selectedResident.getContactNumber());
                 addPreviewDetail("Occupation:", selectedResident.getOccupation());
                 
-                // Household Information
                 addPreviewSection("HOUSEHOLD");
                 addPreviewDetail("Position:", selectedResident.getPosition());
                 addPreviewDetail("Head:", selectedResident.isHouseholdHead() ? "Yes" : 
                     "ID: " + String.format("%06d", selectedResident.getHouseholdHeadID()));
                 addPreviewDetail("Size:", String.valueOf(selectedResident.getHouseholdSize()));
                 
-                // Other Occupants/Household Members
                 addPreviewSection("OTHER OCCUPANTS");
                 if (selectedResident.getHouseholdMembers().isEmpty()) {
                     addPreviewDetail("Members:", "None");
@@ -2858,11 +2799,11 @@ public class BarangayResidentsSystem {
                     for (int i = 0; i < selectedResident.getHouseholdMembers().size(); i++) {
                         HouseholdMember member = selectedResident.getHouseholdMembers().get(i);
                         addPreviewDetail("Member " + (i + 1) + ":", 
-                            member.getFullName() + " (Age: " + member.getAge() + ", " + member.getCivilStatus() + ")");
+                            member.getFullName() + " (Age: " + member.getAge() + ", " + 
+                            member.getSex() + ", " + member.getRelationship() + ")");
                     }
                 }
                 
-                // Status Information
                 addPreviewSection("SYSTEM");
                 addPreviewDetail("Status:", selectedResident.getStatus().toString());
                 addPreviewDetail("Registered:", DateUtils.formatDisplay(selectedResident.getCreatedAt().toLocalDate()));
@@ -2902,7 +2843,6 @@ public class BarangayResidentsSystem {
             previewDetailsPanel.add(detailPanel);
         }
         
-        // ==================== DATA METHODS ====================
         private void loadResidentsData() {
             tableModel.setRowCount(0);
             
@@ -2936,17 +2876,17 @@ public class BarangayResidentsSystem {
         }
         
         private void updateSummaryCards() {
-            int totalResidents = panelResidents.size();
+            int totalResidents = 0;
             int totalPopulation = 0;
             int seniors = 0;
             int deceased = 0;
             
             for (Resident r : panelResidents) {
                 if (r.getStatus() == Resident.ResidentStatus.ACTIVE) {
+                    totalResidents++;
                     totalPopulation += r.getTotalPopulation();
                     if (r.getAge() >= 60) seniors++;
                     
-                    // Check household members for seniors
                     for (HouseholdMember member : r.getHouseholdMembers()) {
                         if (member.getAge() >= 60) seniors++;
                     }
@@ -2971,7 +2911,6 @@ public class BarangayResidentsSystem {
             for (Resident r : panelResidents) {
                 boolean matches = true;
                 
-                // Status filter
                 if (!status.equals("All")) {
                     if (status.equals("Active") && r.getStatus() != Resident.ResidentStatus.ACTIVE) matches = false;
                     else if (status.equals("Senior Citizen") && (r.getAge() < 60 || r.getStatus() != Resident.ResidentStatus.ACTIVE)) matches = false;
@@ -2979,10 +2918,8 @@ public class BarangayResidentsSystem {
                     else if (status.equals("Adult") && (r.getAge() < 13 || r.getAge() > 59 || r.getStatus() != Resident.ResidentStatus.ACTIVE)) matches = false;
                 }
                 
-                // Sex filter
                 if (matches && !sex.equals("All") && !r.getSex().equals(sex)) matches = false;
                 
-                // Age group filter
                 if (matches && !ageGroup.equals("All")) {
                     int age = r.getAge();
                     if (ageGroup.equals("0-12") && (age < 0 || age > 12)) matches = false;
@@ -2992,7 +2929,6 @@ public class BarangayResidentsSystem {
                     else if (ageGroup.equals("60+") && age < 60) matches = false;
                 }
                 
-                // Household head filter
                 if (matches && onlyHeads && !r.isHouseholdHead()) matches = false;
                 
                 if (matches) filteredResidents.add(r);
@@ -3019,7 +2955,7 @@ public class BarangayResidentsSystem {
             }
             
             List<RowFilter<Object, Object>> filters = new ArrayList<>();
-            filters.add(RowFilter.regexFilter("(?i)" + query, 0, 1, 5, 6)); // ID, Name, Address, Contact
+            filters.add(RowFilter.regexFilter("(?i)" + query, 0, 1, 5, 6));
             
             sorter.setRowFilter(RowFilter.andFilter(filters));
             updateRecordSummary();
@@ -3032,7 +2968,6 @@ public class BarangayResidentsSystem {
             return null;
         }
         
-        // ==================== ACTION METHODS ====================
         private void addResident() {
             if (!panelUser.canAccessAdminPanel()) {
                 showAccessDenied();
@@ -3205,7 +3140,6 @@ public class BarangayResidentsSystem {
             dialog.setVisible(true);
         }
         
-        // ==================== HELPER METHODS ====================
         private void showAccessDenied() {
             JOptionPane.showMessageDialog(this, 
                 "You don't have permission to perform this action.", 
@@ -3223,7 +3157,7 @@ public class BarangayResidentsSystem {
         }
     }
     
-    // ==================== ADD/EDIT RESIDENT DIALOG ====================
+    // ==================== ADD/EDIT RESIDENT DIALOG (UPDATED) ====================
     class AddEditResidentDialog {
         private JDialog dialog;
         private Resident resident;
@@ -3250,7 +3184,7 @@ public class BarangayResidentsSystem {
                 new ArrayList<>(existingResident.getHouseholdMembers()) : new ArrayList<>();
             
             dialog = new JDialog(parent, existingResident == null ? "Add New Resident" : "Edit Resident", true);
-            dialog.setSize(700, 800);
+            dialog.setSize(700, 850);
             dialog.setLocationRelativeTo(parent);
             dialog.getContentPane().setBackground(BarangayColors.LIGHT_BACKGROUND);
             
@@ -3271,7 +3205,6 @@ public class BarangayResidentsSystem {
             
             int row = 0;
             
-            // Resident ID (auto-generated, read-only)
             gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
             formPanel.add(new JLabel("Resident ID:"), gbc);
             gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
@@ -3290,7 +3223,6 @@ public class BarangayResidentsSystem {
             formPanel.add(idField, gbc);
             row++;
             
-            // First Name
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("First Name*:"), gbc);
             gbc.gridx = 1;
@@ -3300,7 +3232,6 @@ public class BarangayResidentsSystem {
             formPanel.add(firstNameField, gbc);
             row++;
             
-            // Middle Initial
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Middle Initial:"), gbc);
             gbc.gridx = 1;
@@ -3310,7 +3241,6 @@ public class BarangayResidentsSystem {
             formPanel.add(mInitialField, gbc);
             row++;
             
-            // Last Name
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Last Name*:"), gbc);
             gbc.gridx = 1;
@@ -3320,7 +3250,6 @@ public class BarangayResidentsSystem {
             formPanel.add(lastNameField, gbc);
             row++;
             
-            // Qualifier
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Qualifier:"), gbc);
             gbc.gridx = 1;
@@ -3330,7 +3259,6 @@ public class BarangayResidentsSystem {
             formPanel.add(qualifierField, gbc);
             row++;
             
-            // Birthday
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Birthday*:"), gbc);
             gbc.gridx = 1;
@@ -3340,7 +3268,6 @@ public class BarangayResidentsSystem {
             formPanel.add(birthdayField, gbc);
             row++;
             
-            // Age (auto-calculated)
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Age:"), gbc);
             gbc.gridx = 1;
@@ -3352,7 +3279,6 @@ public class BarangayResidentsSystem {
             formPanel.add(ageField, gbc);
             row++;
             
-            // Sex (ComboBox)
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Sex*:"), gbc);
             gbc.gridx = 1;
@@ -3361,7 +3287,6 @@ public class BarangayResidentsSystem {
             formPanel.add(sexComboBox, gbc);
             row++;
             
-            // Position
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Position*:"), gbc);
             gbc.gridx = 1;
@@ -3375,7 +3300,6 @@ public class BarangayResidentsSystem {
             formPanel.add(positionField, gbc);
             row++;
             
-            // Civil Status (ComboBox)
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Civil Status*:"), gbc);
             gbc.gridx = 1;
@@ -3387,7 +3311,6 @@ public class BarangayResidentsSystem {
             formPanel.add(civilStatusComboBox, gbc);
             row++;
             
-            // Religion (ComboBox + Other field)
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Religion:"), gbc);
             gbc.gridx = 1;
@@ -3434,7 +3357,6 @@ public class BarangayResidentsSystem {
             formPanel.add(religionPanel, gbc);
             row++;
             
-            // Medical Condition
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Medical Condition:"), gbc);
             gbc.gridx = 1;
@@ -3444,7 +3366,6 @@ public class BarangayResidentsSystem {
             formPanel.add(medicalConditionField, gbc);
             row++;
             
-            // Income Bracket
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Income Bracket:"), gbc);
             gbc.gridx = 1;
@@ -3465,7 +3386,6 @@ public class BarangayResidentsSystem {
             formPanel.add(incomeComboBox, gbc);
             row++;
             
-            // Mother Tongue
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Mother Tongue:"), gbc);
             gbc.gridx = 1;
@@ -3475,7 +3395,6 @@ public class BarangayResidentsSystem {
             formPanel.add(motherTongueField, gbc);
             row++;
             
-            // Employment (ComboBox)
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Employment*:"), gbc);
             gbc.gridx = 1;
@@ -3489,7 +3408,6 @@ public class BarangayResidentsSystem {
             formPanel.add(employmentComboBox, gbc);
             row++;
             
-            // Occupation
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Occupation:"), gbc);
             gbc.gridx = 1;
@@ -3499,7 +3417,6 @@ public class BarangayResidentsSystem {
             formPanel.add(occupationField, gbc);
             row++;
             
-            // Address
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Address*:"), gbc);
             gbc.gridx = 1;
@@ -3509,7 +3426,6 @@ public class BarangayResidentsSystem {
             formPanel.add(addressField, gbc);
             row++;
             
-            // Contact Number
             gbc.gridx = 0; gbc.gridy = row;
             formPanel.add(new JLabel("Contact Number*:"), gbc);
             gbc.gridx = 1;
@@ -3520,7 +3436,6 @@ public class BarangayResidentsSystem {
             formPanel.add(contactField, gbc);
             row++;
             
-            // Household Members section (only for household heads)
             if (existingResident == null || existingResident.isHouseholdHead()) {
                 gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2;
                 gbc.anchor = GridBagConstraints.CENTER;
@@ -3533,7 +3448,8 @@ public class BarangayResidentsSystem {
                 gbc.gridy = row; gbc.fill = GridBagConstraints.BOTH;
                 gbc.weightx = 1.0; gbc.weighty = 0.3;
                 
-                String[] memberColumns = {"Last Name", "First Name", "Qualifier", "Age", "Birthday", "Civil Status"};
+                String[] memberColumns = {"Last Name", "First Name", "Qualifier", "Age", "Birthday", 
+                                          "Civil Status", "Sex", "Relationship"};
                 memberTableModel = new DefaultTableModel(memberColumns, 0) {
                     @Override
                     public boolean isCellEditable(int row, int column) {
@@ -3545,7 +3461,7 @@ public class BarangayResidentsSystem {
                 memberTable.setFont(new Font("Segoe UI", Font.PLAIN, 11));
                 memberTable.setRowHeight(22);
                 JScrollPane memberScrollPane = new JScrollPane(memberTable);
-                memberScrollPane.setPreferredSize(new Dimension(600, 120));
+                memberScrollPane.setPreferredSize(new Dimension(600, 150));
                 formPanel.add(memberScrollPane, gbc);
                 row++;
                 
@@ -3556,7 +3472,9 @@ public class BarangayResidentsSystem {
                         member.getQualifier() != null ? member.getQualifier() : "",
                         member.getAge(),
                         member.getBirthday(),
-                        member.getCivilStatus()
+                        member.getCivilStatus(),
+                        member.getSex(),
+                        member.getRelationship()
                     });
                 }
                 
@@ -3655,7 +3573,7 @@ public class BarangayResidentsSystem {
         
         private void showAddMemberDialog() {
             JDialog memberDialog = new JDialog(dialog, "Add Household Member / Occupant", true);
-            memberDialog.setSize(450, 400);
+            memberDialog.setSize(500, 500);
             memberDialog.setLocationRelativeTo(dialog);
             memberDialog.getContentPane().setBackground(BarangayColors.LIGHT_BACKGROUND);
             
@@ -3694,6 +3612,25 @@ public class BarangayResidentsSystem {
             row++;
             
             gbc.gridx = 0; gbc.gridy = row;
+            panel.add(new JLabel("Sex*:"), gbc);
+            gbc.gridx = 1;
+            StyledComboBox<String> sexComboBox = new StyledComboBox<>(new String[]{"Male", "Female"});
+            panel.add(sexComboBox, gbc);
+            row++;
+            
+            gbc.gridx = 0; gbc.gridy = row;
+            panel.add(new JLabel("Relationship*:"), gbc);
+            gbc.gridx = 1;
+            String[] relationshipOptions = {
+                "Son", "Daughter", "Father", "Mother", "Grandfather", "Grandmother",
+                "Spouse", "Live-in Partner", "Brother", "Sister", "Grandson", "Granddaughter",
+                "Nephew", "Niece", "Uncle", "Aunt", "Cousin", "Maid", "Boarder", "Other"
+            };
+            StyledComboBox<String> relationshipComboBox = new StyledComboBox<>(relationshipOptions);
+            panel.add(relationshipComboBox, gbc);
+            row++;
+            
+            gbc.gridx = 0; gbc.gridy = row;
             panel.add(new JLabel("Birthday*:"), gbc);
             gbc.gridx = 1;
             StyledTextField birthdayField = new StyledTextField(12);
@@ -3729,6 +3666,8 @@ public class BarangayResidentsSystem {
                 String lastName = lastNameField.getText().trim();
                 String firstName = firstNameField.getText().trim();
                 String qualifier = qualifierField.getText().trim();
+                String sex = (String) sexComboBox.getSelectedItem();
+                String relationship = (String) relationshipComboBox.getSelectedItem();
                 String birthday = birthdayField.getText().trim();
                 String civilStatus = (String) civilStatusBox.getSelectedItem();
                 
@@ -3751,13 +3690,13 @@ public class BarangayResidentsSystem {
                         return;
                     }
                     
-                    ageField.setText(String.valueOf(age));
-                    
-                    HouseholdMember member = new HouseholdMember(lastName, firstName, qualifier, 
-                        age, birthday, civilStatus);
+                    HouseholdMember member = new HouseholdMember(
+                        lastName, firstName, qualifier, age, birthday, 
+                        civilStatus, sex, relationship
+                    );
                     householdMembers.add(member);
                     memberTableModel.addRow(new Object[]{
-                        lastName, firstName, qualifier, age, birthday, civilStatus
+                        lastName, firstName, qualifier, age, birthday, civilStatus, sex, relationship
                     });
                     memberDialog.dispose();
                 } catch (DateTimeParseException ex) {
@@ -3862,7 +3801,6 @@ public class BarangayResidentsSystem {
                     return;
                 }
                 
-                // Get religion (handle "Other" case)
                 String religion = (String) religionComboBox.getSelectedItem();
                 if ("Other".equals(religion)) {
                     religion = religionOtherField.getText().trim();
@@ -3959,7 +3897,7 @@ public class BarangayResidentsSystem {
         }
     }
     
-    // ==================== RESIDENT DETAILS DIALOG ====================
+    // ==================== RESIDENT DETAILS DIALOG (UPDATED) ====================
     class ResidentDetailsDialog extends JDialog {
         private Resident resident;
         
@@ -3967,7 +3905,7 @@ public class BarangayResidentsSystem {
             super(parent, "Resident Details", true);
             this.resident = resident;
             
-            setSize(450, 600);
+            setSize(500, 650);
             setLocationRelativeTo(parent);
             setResizable(false);
             
@@ -3975,7 +3913,6 @@ public class BarangayResidentsSystem {
             mainPanel.setBackground(Color.WHITE);
             mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
             
-            // Header
             JLabel titleLabel = new JLabel("Resident Information");
             titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
             titleLabel.setForeground(BarangayColors.PRIMARY_BLUE);
@@ -3997,7 +3934,6 @@ public class BarangayResidentsSystem {
             headerPanel.add(nameLabel);
             headerPanel.add(idLabel);
             
-            // Details
             JPanel detailsPanel = new JPanel(new GridBagLayout());
             detailsPanel.setBackground(Color.WHITE);
             detailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
@@ -4024,13 +3960,13 @@ public class BarangayResidentsSystem {
             addDetailRow(detailsPanel, gbc, row++, "Household Head:", 
                 resident.isHouseholdHead() ? "Yes" : "ID: " + String.format("%06d", resident.getHouseholdHeadID()));
             
-            // Other Occupants/Household Members
             if (!resident.getHouseholdMembers().isEmpty()) {
                 addDetailRow(detailsPanel, gbc, row++, "Other Occupants:", "");
                 for (int i = 0; i < resident.getHouseholdMembers().size(); i++) {
                     HouseholdMember member = resident.getHouseholdMembers().get(i);
                     addDetailRow(detailsPanel, gbc, row++, "  " + (i + 1) + ".", 
-                        member.getFullName() + " (Age: " + member.getAge() + ", " + member.getCivilStatus() + ")");
+                        member.getFullName() + " (Age: " + member.getAge() + ", " + 
+                        member.getSex() + ", " + member.getRelationship() + ")");
                 }
             }
             
@@ -4041,7 +3977,6 @@ public class BarangayResidentsSystem {
             JScrollPane scrollPane = new JScrollPane(detailsPanel);
             scrollPane.setBorder(null);
             
-            // Close button
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             buttonPanel.setBackground(Color.WHITE);
             
@@ -4078,12 +4013,12 @@ public class BarangayResidentsSystem {
             field.setEditable(false);
             field.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
             field.setBackground(BarangayColors.LIGHT_BACKGROUND);
-            field.setPreferredSize(new Dimension(200, 22));
+            field.setPreferredSize(new Dimension(250, 22));
             panel.add(field, gbc);
         }
     }
     
-    // ==================== REPORTS PANEL ====================
+    // ==================== REPORTS PANEL (UPDATED) ====================
     class ReportsPanel extends JPanel {
         private User reportUser;
         private List<Resident> reportResidents;
@@ -4230,14 +4165,17 @@ public class BarangayResidentsSystem {
             
             for (Resident r : reportResidents) {
                 if (r.getStatus() == Resident.ResidentStatus.ACTIVE) {
-                    // Count household head
                     if (r.getSex() != null) {
                         if (r.getSex().equalsIgnoreCase("male")) male++;
                         else if (r.getSex().equalsIgnoreCase("female")) female++;
                     }
                     
-                    // Note: Household members don't have sex data, so they are not counted in sex distribution
-                    // This is intentional as per system design
+                    for (HouseholdMember member : r.getHouseholdMembers()) {
+                        if (member.getSex() != null) {
+                            if (member.getSex().equalsIgnoreCase("male")) male++;
+                            else if (member.getSex().equalsIgnoreCase("female")) female++;
+                        }
+                    }
                 }
             }
             
@@ -4248,17 +4186,17 @@ public class BarangayResidentsSystem {
             String message = String.format(
                 "<html><div style='width: 450px;'>" +
                 "<h2 style='color: #2F5D8A;'>Barangay Sex Distribution</h2>" +
-                "<p><i>Note: Based on household heads only. Sex data is not collected for household members.</i></p>" +
+                "<p><i>Note: Includes all household members with sex data.</i></p>" +
                 "<hr>" +
                 "<table style='width: 100%%; border-collapse: collapse;'>" +
                 "<tr style='background-color: #e3f2fd;'><td style='padding: 10px;'><b>Male:</b></td>" +
-                "<td style='padding: 10px;'>%d residents</td>" +
+                "<td style='padding: 10px;'>%d individuals</td>" +
                 "<td style='padding: 10px;'><b>%.1f%%</b></td></tr>" +
                 "<tr style='background-color: #fce4ec;'><td style='padding: 10px;'><b>Female:</b></td>" +
-                "<td style='padding: 10px;'>%d residents</td>" +
+                "<td style='padding: 10px;'>%d individuals</td>" +
                 "<td style='padding: 10px;'><b>%.1f%%</b></td></tr>" +
-                "<tr style='background-color: #f5f5f5;'><td style='padding: 10px;'><b>Total Household Heads:</b></td>" +
-                "<td style='padding: 10px;' colspan='2'><b>%d residents</b></td></tr>" +
+                "<tr style='background-color: #f5f5f5;'><td style='padding: 10px;'><b>Total Population:</b></td>" +
+                "<td style='padding: 10px;' colspan='2'><b>%d individuals</b></td></tr>" +
                 "</table>" +
                 "</div></html>",
                 male, malePct, female, femalePct, total
@@ -4278,11 +4216,9 @@ public class BarangayResidentsSystem {
             
             for (Resident r : reportResidents) {
                 if (r.getStatus() == Resident.ResidentStatus.ACTIVE) {
-                    // Count household head
                     int age = r.getAge();
                     categorizeAge(ageGroups, age);
                     
-                    // Count household members
                     for (HouseholdMember member : r.getHouseholdMembers()) {
                         categorizeAge(ageGroups, member.getAge());
                     }
@@ -4589,7 +4525,6 @@ public class BarangayResidentsSystem {
             addUserInfoRow(userInfoPanel, "Email:", settingsUser.getEmail());
             addUserInfoRow(userInfoPanel, "Phone:", settingsUser.getPhone());
             
-            // Show Resident ID for Staff and Resident users
             if (settingsUser instanceof Staff) {
                 addUserInfoRow(userInfoPanel, "Resident ID:", String.valueOf(((Staff) settingsUser).getResidentID()));
             } else if (settingsUser instanceof ResidentUser) {
@@ -4786,4 +4721,3 @@ public class BarangayResidentsSystem {
         });
     }
 }
-
